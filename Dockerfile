@@ -17,6 +17,8 @@ RUN python3 -m pip install --upgrade pip && \
     find /usr/local -name '__pycache__' -type d -exec rm -rf {} +
 
 RUN takyctl setup --public-ip=${PUBLIC_IP} /etc/taky
+RUN takyctl build_client CLIENT1
+
 
 # Second stage: runtime
 FROM python:3.11-slim AS runtime
@@ -25,7 +27,14 @@ WORKDIR /
 
 RUN mkdir /var/taky
 
+COPY --from=builder /build/build/CLIENT1.zip /var/taky/
 COPY --from=builder /usr/local /usr/local
 COPY --from=builder /etc/taky /etc/taky
 
 ENTRYPOINT [ "taky", "-l", "info", "-c", "/etc/taky/taky.conf" ]
+
+# Simple quickstart launch example:  
+#   docker build . --tag taky_server && docker run -it --rm --name taky_server -p 8089:8089 -p 8090:8090 taky_server
+# Client connection package extraction:
+#   docker cp taky_server:/var/taky/CLIENT1.zip ./
+#   docker exec -it taky_server /bin/sh -c 'cd /var/taky ; python3 -m http.server 8090'
